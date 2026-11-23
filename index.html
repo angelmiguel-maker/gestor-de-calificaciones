@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión Académica Universitaria</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="h-full flex flex-col text-slate-800 antialiased bg-slate-50">
+
+    <!-- CONTENEDOR DE NOTIFICACIONES (TOAST) -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- PANTALLA 1: AUTENTICACIÓN / REGISTRO / LOGIN -->
+    <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-indigo-950 to-brand-900">
+        <div class="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row my-8">
+            
+            <!-- Lateral Informativo -->
+            <div class="md:w-5/12 bg-gradient-to-br from-brand-700 to-indigo-900 p-8 text-white flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+                <div class="relative z-10">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-xl font-bold">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                        <span class="text-xl font-bold tracking-tight">UniNotas UPE</span>
+                    </div>
+                    <h2 class="text-2xl font-bold mb-3">Portal de Gestión Académica</h2>
+                    <p class="text-indigo-200 text-sm leading-relaxed">
+                        Accede a tus calificaciones, control de asistencias y seguimiento de materias en un solo lugar.
+                    </p>
+                </div>
+
+                <div class="relative z-10 my-8 p-4 bg-white/10 backdrop-blur-md rounded-xl text-xs space-y-2 border border-white/10">
+                    <p class="font-semibold text-amber-300"><i class="fa-solid fa-key mr-1"></i> Accesos Demo Rápidos:</p>
+                    <div class="grid grid-cols-1 gap-1 text-indigo-100">
+                        <button onclick="fillDemo('docente')" class="text-left hover:underline text-white font-medium">
+                            👨‍🏫 Docente: Cédula: <span class="font-mono bg-black/20 px-1 rounded">1001</span> | Pass: <span class="font-mono bg-black/20 px-1 rounded">1234</span>
+                        </button>
+                        <button onclick="fillDemo('alumno')" class="text-left hover:underline text-white font-medium">
+                            👨‍🎓 Alumno: Cédula: <span class="font-mono bg-black/20 px-1 rounded">2001</span> | Pass: <span class="font-mono bg-black/20 px-1 rounded">1234</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="relative z-10 text-xs text-indigo-300">
+                    © 2026 Facultad de Ciencias & Tecnología
+                </div>
+            </div>
+
+            <!-- Formulario Principal -->
+            <div class="md:w-7/12 p-6 md:p-8 flex flex-col justify-center">
+                <!-- Selector Tabs: Login vs Registro -->
+                <div class="flex border-b border-slate-200 mb-6">
+                    <button id="tab-login-btn" onclick="switchAuthTab('login')" class="pb-3 px-4 font-semibold text-brand-600 border-b-2 border-brand-600 transition-all text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
+                    </button>
+                    <button id="tab-register-btn" onclick="switchAuthTab('register')" class="pb-3 px-4 font-medium text-slate-400 hover:text-slate-600 border-b-2 border-transparent transition-all text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-user-plus"></i> Crear Cuenta
+                    </button>
+                </div>
+
+                <!-- FORMULARIO LOGIN -->
+                <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Nº de Cédula (Usuario)</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-id-card absolute left-3 top-3.5 text-slate-400 text-sm"></i>
+                            <input type="text" id="login-cedula" required class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white text-sm" placeholder="Ej: 1234567">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Contraseña</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-lock absolute left-3 top-3.5 text-slate-400 text-sm"></i>
+                            <input type="password" id="login-password" required class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-600 focus:bg-white text-sm" placeholder="••••••••">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all text-sm flex items-center justify-center gap-2">
+                        Ingresar al Sistema <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </form>
+
+                <!-- FORMULARIO REGISTRO -->
+                <div id="register-container" class="hidden space-y-4">
+                    <!-- Selector Tipo de Usuario -->
+                    <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-lg text-xs font-medium">
+                        <button type="button" id="role-alumno-btn" onclick="setRegisterRole('alumno')" class="py-2 rounded-md bg-white text-brand-600 shadow-sm font-semibold transition-all">
+                            <i class="fa-solid fa-user-graduate mr-1"></i> Soy Alumno
+                        </button>
+                        <button type="button" id="role-docente-btn" onclick="setRegisterRole('docente')" class="py-2 rounded-md text-slate-600 transition-all">
+                            <i class="fa-solid fa-chalkboard-teacher mr-1"></i> Soy Docente
+                        </button>
+                    </div>
+
+                    <!-- REGISTRO ALUMNO -->
+                    <form id="register-alumno-form" onsubmit="handleRegisterAlumno(event)" class="space-y-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre y Apellido</label>
+                                <input type="text" id="reg-alumno-nombre" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-600 focus:bg-white" placeholder="Juan Pérez">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Nº de Cédula</label>
+                                <input type="text" id="reg-alumno-cedula" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-600 focus:bg-white" placeholder="1234567">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Teléfono</label>
+                                <input type="tel" id="reg-alumno-telefono" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-600 focus:bg-white" placeholder="0981 123456">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Nº de Matrícula</label>
+                                <input type="text" id="reg-alumno-matricula" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-600 focus:bg-white" placeholder="MAT-2026-01">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Carrera que Cursa</label>
+                            <select id="reg-alumno-carrera" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-600 focus:bg-white">
+                                <!-- Opciones cargadas dinámicamente -->
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Contraseña</label>
+                            <input type="password" id="reg-alumno-password" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-600 focus:bg-white" placeholder="••••••••">
+                        </div>
+
+                        <button type="submit" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg text-xs transition-all shadow-md">
+                            Registrar como Alumno
+                        </button>
+                    </form>
+
+                    <!-- REGISTRO DOCENTE -->
+                    <form id="register-docente-form" onsubmit="handleRegisterDocente(event)" class="space-y-3 hidden">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Nombre Completo</label>
+                                <input type="text" id="reg-docente-nombre" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-600 focus:bg-white" placeholder="Dr. Roberto Gómez">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Nº de Cédula</label>
+                                <input type="text" id="reg-docente-cedula" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-600 focus:bg-white" placeholder="9876543">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Teléfono</label>
+                                <input type="tel" id="reg-docente-telefono" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-600 focus:bg-white" placeholder="0971 654321">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Contraseña</label>
+                                <input type="password" id="reg-docente-password" required class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-600 focus:bg-white" placeholder="••••••••">
+                            </div>
+                        </div>
+
+                        <!-- Sección Asignación de Carreras y Materias -->
+                        <div class="border border-slate-200 rounded-lg p-3 bg-slate-50 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <label class="text-xs font-bold text-slate-700"><i class="fa-solid fa-book-bookmark text-brand-600 mr-1"></i> Asignar Carreras y Materias</label>
+                                <button type="button" onclick="addDocenteCarreraRow()" class="text-xs text-brand-600 hover:text-brand-800 font-medium">
+                                    + Agregar Otra Carrera
+                                </button>
+                            </div>
+                            <div id="docente-carreras-container" class="space-y-2">
+                                <!-- Filas dinámicas -->
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg text-xs transition-all shadow-md">
+                            Registrar como Docente
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- PANTALLA PRINCIPAL DE LA APLICACIÓN (ALUMNO Y DOCENTE) -->
+    <div id="app-screen" class="hidden flex-1 flex flex-col min-h-screen">
+        
+        <!-- NAVBAR -->
+        <header class="bg-indigo-900 text-white shadow-md border-b border-indigo-800 sticky top-0 z-30">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold shadow-inner">
+                        <i class="fa-solid fa-university text-base"></i>
+                    </div>
+                    <div>
+                        <span class="font-bold tracking-tight text-white block leading-none">UniNotas UPE</span>
+                        <span class="text-[10px] text-indigo-300 font-medium tracking-wide">FACULTAD DE CIENCIAS Y TECNOLOGÍA</span>
+                    </div>
+                </div>
+
+                <!-- Info Usuario & Logout -->
+                <div class="flex items-center gap-4">
+                    <div class="hidden sm:flex flex-col text-right">
+                        <span id="user-display-name" class="text-sm font-semibold leading-tight text-slate-100">Cargando...</span>
+                        <span id="user-display-role" class="text-xs text-indigo-300 font-medium">Rol</span>
+                    </div>
+                    <div class="h-8 w-px bg-indigo-800 hidden sm:block"></div>
+                    <button onclick="logout()" class="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-400/30 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span class="hidden sm:inline">Salir</span>
+                    </button>
+                </div>
+
+            </div>
+        </header>
+
+        <!-- PANEL ALUMNO -->
+        <main id="alumno-dashboard" class="hidden flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+            
+            <!-- TARJETA INFORMATIVA ALUMNO -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between gap-6 items-start md:items-center">
+                <div class="space-y-1">
+                    <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-indigo-50 text-brand-700 text-xs font-semibold border border-brand-100">
+                        <i class="fa-solid fa-user-graduate"></i> Expediente del Estudiante
+                    </div>
+                    <h1 id="alumno-card-nombre" class="text-2xl font-bold text-slate-800">---</h1>
+                    <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 pt-1">
+                        <span><strong class="text-slate-700">Cédula:</strong> <span id="alumno-card-cedula">---</span></span>
+                        <span>•</span>
+                        <span><strong class="text-slate-700">Matrícula:</strong> <span id="alumno-card-matricula">---</span></span>
+                        <span>•</span>
+                        <span><strong class="text-slate-700">Teléfono:</strong> <span id="alumno-card-telefono">---</span></span>
+                    </div>
+                </div>
+
+                <div class="w-full md:w-auto bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center gap-4">
+                    <div class="p-3 bg-brand-600 text-white rounded-xl">
+                        <i class="fa-solid fa-book-open text-xl"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-500 font-medium block uppercase tracking-wider">Carrera Actual</span>
+                        <span id="alumno-card-carrera" class="font-bold text-slate-800 text-sm">---</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FILTRO Y RESUMEN -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-brand-600"></i> Asignaturas e Historial de Notas
+                </h2>
+                
+                <div class="w-full sm:w-64">
+                    <input type="text" id="alumno-search-subject" oninput="renderAlumnoSubjects()" placeholder="Buscar materia..." class="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-xs focus:ring-2 focus:ring-brand-600 shadow-sm">
+                </div>
+            </div>
+
+            <!-- TABLA / CARDS DE MATERIAS Y CALIFICACIONES -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                <th class="py-4 px-6">Materia</th>
+                                <th class="py-4 px-4 text-center">Parcial 1 (30%)</th>
+                                <th class="py-4 px-4 text-center">Parcial 2 (30%)</th>
+                                <th class="py-4 px-4 text-center">Examen Final (40%)</th>
+                                <th class="py-4 px-4 text-center">Nota Final</th>
+                                <th class="py-4 px-4 text-center">Asistencia</th>
+                                <th class="py-4 px-6 text-center">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alumno-grades-table" class="divide-y divide-slate-100 text-sm">
+                            <!-- Filas dinámicas -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="alumno-empty-state" class="hidden p-8 text-center text-slate-400">
+                    <i class="fa-solid fa-folder-open text-4xl mb-2"></i>
+                    <p class="text-sm">No se encontraron materias asignadas para esta carrera.</p>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- PANEL DOCENTE -->
+        <main id="docente-dashboard" class="hidden flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+            
+            <!-- BANNER BIENVENIDA DOCENTE -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 text-xs font-semibold border border-purple-100 mb-1">
+                        <i class="fa-solid fa-chalkboard-user"></i> Panel del Profesor
+                    </div>
+                    <h1 id="docente-card-nombre" class="text-2xl font-bold text-slate-800">---</h1>
+                    <p class="text-xs text-slate-500">Cédula: <span id="docente-card-cedula">---</span> | Teléfono: <span id="docente-card-telefono">---</span></p>
+                </div>
+
+                <!-- SELECTOR DE CARRERA Y MATERIA -->
+                <div class="w-full md:w-auto flex flex-col sm:flex-row gap-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Carrera</label>
+                        <select id="docente-select-carrera" onchange="onDocenteCarreraChange()" class="w-full sm:w-56 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-brand-600">
+                            <!-- Carreras asignadas al docente -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Materia</label>
+                        <select id="docente-select-materia" onchange="renderDocenteStudents()" class="w-full sm:w-56 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-brand-600">
+                            <!-- Materias de la carrera seleccionada -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTENEDOR LISTADO DE ALUMNOS DE LA MATERIA -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden space-y-4">
+                <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-users-gear text-brand-600"></i> Planilla de Calificaciones y Asistencia
+                        </h2>
+                        <p class="text-xs text-slate-500">Modifique directamente los valores y pulse "Guardar Cambios".</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="saveDocenteChanges()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-semibold shadow transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                <th class="py-3.5 px-6">Alumno</th>
+                                <th class="py-3.5 px-4">Matrícula / Cédula</th>
+                                <th class="py-3.5 px-3 text-center w-28">Parcial 1 (0-30)</th>
+                                <th class="py-3.5 px-3 text-center w-28">Parcial 2 (0-30)</th>
+                                <th class="py-3.5 px-3 text-center w-28">Final (0-40)</th>
+                                <th class="py-3.5 px-3 text-center w-24">Total Pts</th>
+                                <th class="py-3.5 px-3 text-center w-28">Asistencia (%)</th>
+                                <th class="py-3.5 px-4 text-center">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="docente-students-table" class="divide-y divide-slate-100 text-sm">
+                            <!-- Filas dinámicas de alumnos -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="docente-empty-state" class="hidden p-12 text-center text-slate-400 space-y-2">
+                    <i class="fa-solid fa-user-slash text-4xl text-slate-300"></i>
+                    <p class="text-sm font-medium">No hay alumnos inscriptos en esta carrera o materia seleccionada.</p>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="mt-auto bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+            Sistema Universitario de Control de Actas Académicas • versión 2.5
+        </footer>
+
+    </div>
+
+    <!-- LOGICA EN JAVASCRIPT -->
+    <script>
+        // ==========================================
+        // BASE DE DATOS INICIAL & PERSISTENCIA
+        // ==========================================
+
+        const INITIAL_CARRERAS = [
+            {
+                id: 'ing-sistemas',
+                nombre: 'Ingeniería en Sistemas',
+                materias: ['Programación I', 'Base de Datos', 'Algoritmos & Estructuras', 'Redes de Computadoras']
+            },
+            {
+                id: 'adm-empresas',
+                nombre: 'Administración de Empresas',
+                materias: ['Contabilidad General', 'Marketing Digital', 'Finanzas Corporativas', 'Economía']
+            },
+            {
+                id: 'derecho',
+                nombre: 'Derecho y Ciencias Sociales',
+                materias: ['Derecho Civil', 'Derecho Penal', 'Derecho Constitucional', 'Filosofía del Derecho']
+            }
+        ];
+
+        // Usuarios Iniciales Demo
+        const INITIAL_USERS = [
+            // DOCENTE DEMO
+            {
+                cedula: '1001',
+                password: '1234',
+                nombre: 'Dr. Carlos Mendoza',
+                telefono: '0981 111 222',
+                rol: 'docente',
+                carreras: [
+                    {
+                        carreraId: 'ing-sistemas',
+                        materias: ['Programación I', 'Base de Datos']
+                    },
+                    {
+                        carreraId: 'adm-empresas',
+                        materias: ['Finanzas Corporativas']
+                    }
+                ]
+            },
+            // ALUMNOS DEMO
+            {
+                cedula: '2001',
+                password: '1234',
+                nombre: 'María José Benítez',
+                telefono: '0971 333 444',
+                matricula: '2024-ING-089',
+                carreraId: 'ing-sistemas',
+                rol: 'alumno'
+            },
+            {
+                cedula: '2002',
+                password: '1234',
+                nombre: 'Lucas Alejandro Silva',
+                telefono: '0982 555 666',
+                matricula: '2024-ING-090',
+                carreraId: 'ing-sistemas',
+                rol: 'alumno'
+            },
+            {
+                cedula: '2003',
+                password: '1234',
+                nombre: 'Ana Belén Martínez',
+                telefono: '0991 777 888',
+                matricula: '2024-ADM-012',
+                carreraId: 'adm-empresas',
+                rol: 'alumno'
+            }
+        ];
+
+        // Registros de Notas e Historias Demo
+        // Clave única: cedulaAlumno + "_" + materia
+        const INITIAL_NOTAS = {
+            "2001_Programación I": { p1: 28, p2: 27, final: 35, asistencia: 92 },
+            "2001_Base de Datos": { p1: 22, p2: 24, final: 30, asistencia: 85 },
+            "2001_Algoritmos & Estructuras": { p1: 15, p2: 18, final: 25, asistencia: 78 },
+            "2002_Programación I": { p1: 20, p2: 19, final: 22, asistencia: 80 },
+            "2002_Base de Datos": { p1: 29, p2: 28, final: 38, asistencia: 96 },
+            "2003_Finanzas Corporativas": { p1: 25, p2: 26, final: 34, asistencia: 90 }
+        };
+
+        // Estado Global de la App
+        let appState = {
+            carreras: [],
+            users: [],
+            notas: {},
+            currentUser: null
+        };
+
+        // Inicialización
+        window.onload = function() {
+            loadDatabase();
+            populateRegisterCarrerasSelect();
+            initDocenteRegisterForm();
+            checkSession();
+        };
+
+        function loadDatabase() {
+            const savedCarreras = localStorage.getItem('uni_carreras');
+            const savedUsers = localStorage.getItem('uni_users');
+            const savedNotas = localStorage.getItem('uni_notas');
+
+            appState.carreras = savedCarreras ? JSON.parse(savedCarreras) : INITIAL_CARRERAS;
+            appState.users = savedUsers ? JSON.parse(savedUsers) : INITIAL_USERS;
+            appState.notas = savedNotas ? JSON.parse(savedNotas) : INITIAL_NOTAS;
+
+            saveDatabase();
+        }
+
+        function saveDatabase() {
+            localStorage.setItem('uni_carreras', JSON.stringify(appState.carreras));
+            localStorage.setItem('uni_users', JSON.stringify(appState.users));
+            localStorage.setItem('uni_notas', JSON.stringify(appState.notas));
+        }
+
+        // ==========================================
+        // NOTIFICACIONES TOAST Y UTILIDADES
+        // ==========================================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            const bgClass = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-red-600' : 'bg-indigo-600';
+            const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
+
+            toast.className = `${bgClass} text-white text-xs px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 pointer-events-auto transform transition-all duration-300 translate-y-2 opacity-0`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function fillDemo(type) {
+            if (type === 'docente') {
+                document.getElementById('login-cedula').value = '1001';
+                document.getElementById('login-password').value = '1234';
+            } else {
+                document.getElementById('login-cedula').value = '2001';
+                document.getElementById('login-password').value = '1234';
+            }
+            switchAuthTab('login');
+        }
+
+        // ==========================================
+        // AUTENTICACIÓN & VISTAS REGISTRO
+        // ==========================================
+
+        function switchAuthTab(tab) {
+            const loginForm = document.getElementById('login-form');
+            const regContainer = document.getElementById('register-container');
+            const loginBtn = document.getElementById('tab-login-btn');
+            const regBtn = document.getElementById('tab-register-btn');
+
+            if (tab === 'login') {
+                loginForm.classList.remove('hidden');
+                regContainer.classList.add('hidden');
+                loginBtn.className = "pb-3 px-4 font-semibold text-brand-600 border-b-2 border-brand-600 transition-all text-sm flex items-center gap-2";
+                regBtn.className = "pb-3 px-4 font-medium text-slate-400 hover:text-slate-600 border-b-2 border-transparent transition-all text-sm flex items-center gap-2";
+            } else {
+                loginForm.classList.add('hidden');
+                regContainer.classList.remove('hidden');
+                regBtn.className = "pb-3 px-4 font-semibold text-brand-600 border-b-2 border-brand-600 transition-all text-sm flex items-center gap-2";
+                loginBtn.className = "pb-3 px-4 font-medium text-slate-400 hover:text-slate-600 border-b-2 border-transparent transition-all text-sm flex items-center gap-2";
+            }
+        }
+
+        let currentRegisterRole = 'alumno';
+
+        function setRegisterRole(role) {
+            currentRegisterRole = role;
+            const btnAlumno = document.getElementById('role-alumno-btn');
+            const btnDocente = document.getElementById('role-docente-btn');
+            const formAlumno = document.getElementById('register-alumno-form');
+            const formDocente = document.getElementById('register-docente-form');
+
+            if (role === 'alumno') {
+                btnAlumno.className = "py-2 rounded-md bg-white text-brand-600 shadow-sm font-semibold transition-all";
+                btnDocente.className = "py-2 rounded-md text-slate-600 transition-all font-normal";
+                formAlumno.classList.remove('hidden');
+                formDocente.classList.add('hidden');
+            } else {
+                btnDocente.className = "py-2 rounded-md bg-white text-brand-600 shadow-sm font-semibold transition-all";
+                btnAlumno.className = "py-2 rounded-md text-slate-600 transition-all font-normal";
+                formDocente.classList.remove('hidden');
+                formAlumno.classList.add('hidden');
+            }
+        }
+
+        function populateRegisterCarrerasSelect() {
+            const selectAlumno = document.getElementById('reg-alumno-carrera');
+            selectAlumno.innerHTML = appState.carreras.map(c => 
+                `<option value="${c.id}">${c.nombre}</option>`
+            ).join('');
+        }
+
+        // Manejo dinámico de Filas de Carrera/Materia en Registro Docente
+        function initDocenteRegisterForm() {
+            const container = document.getElementById('docente-carreras-container');
+            container.innerHTML = '';
+            addDocenteCarreraRow();
+        }
+
+        function addDocenteCarreraRow() {
+            const container = document.getElementById('docente-carreras-container');
+            const rowIndex = container.children.length;
+
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'p-2.5 bg-white border border-slate-200 rounded-lg space-y-2 text-xs font-normal';
+            rowDiv.dataset.index = rowIndex;
+
+            const optionsCarreras = appState.carreras.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+
+            rowDiv.innerHTML = `
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex-1">
+                        <label class="block font-semibold text-slate-600 mb-0.5">Carrera</label>
+                        <select onchange="updateDocenteMateriasRow(this)" class="doc-carrera-select w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs">
+                            ${optionsCarreras}
+                        </select>
+                    </div>
+                    ${rowIndex > 0 ? `<button type="button" onclick="this.closest('div.space-y-2').remove()" class="text-red-500 hover:text-red-700 font-bold self-end mb-1"><i class="fa-solid fa-trash"></i></button>` : ''}
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-0.5">Materias que enseña en esta carrera</label>
+                    <div class="doc-materias-checkboxes flex flex-wrap gap-2 pt-1">
+                        <!-- Checkboxes dinámicos -->
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(rowDiv);
+            updateDocenteMateriasRow(rowDiv.querySelector('.doc-carrera-select'));
+        }
+
+        function updateDocenteMateriasRow(selectElement) {
+            const carreraId = selectElement.value;
+            const containerRow = selectElement.closest('div.space-y-2');
+            const materiasDiv = containerRow.querySelector('.doc-materias-checkboxes');
+            
+            const carreraObj = appState.carreras.find(c => c.id === carreraId);
+            if (!carreraObj) return;
+
+            materiasDiv.innerHTML = carreraObj.materias.map(mat => `
+                <label class="inline-flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded border border-slate-200 cursor-pointer text-xs">
+                    <input type="checkbox" value="${mat}" class="rounded text-brand-600 focus:ring-brand-500 doc-materia-check">
+                    <span>${mat}</span>
+                </label>
+            `).join('');
+        }
+
+        // HANDLERS REGISTRO
+        function handleRegisterAlumno(e) {
+            e.preventDefault();
+            const cedula = document.getElementById('reg-alumno-cedula').value.trim();
+
+            if (appState.users.find(u => u.cedula === cedula)) {
+                showToast('Ya existe un usuario registrado con esa cédula', 'error');
+                return;
+            }
+
+            const newAlumno = {
+                cedula: cedula,
+                nombre: document.getElementById('reg-alumno-nombre').value.trim(),
+                telefono: document.getElementById('reg-alumno-telefono').value.trim(),
+                matricula: document.getElementById('reg-alumno-matricula').value.trim(),
+                carreraId: document.getElementById('reg-alumno-carrera').value,
+                password: document.getElementById('reg-alumno-password').value,
+                rol: 'alumno'
+            };
+
+            appState.users.push(newAlumno);
+            saveDatabase();
+            showToast('Cuenta de Alumno creada exitosamente. Inicie Sesión.', 'success');
+            switchAuthTab('login');
+            document.getElementById('login-cedula').value = cedula;
+            document.getElementById('login-password').value = newAlumno.password;
+        }
+
+        function handleRegisterDocente(e) {
+            e.preventDefault();
+            const cedula = document.getElementById('reg-docente-cedula').value.trim();
+
+            if (appState.users.find(u => u.cedula === cedula)) {
+                showToast('Ya existe un usuario registrado con esa cédula', 'error');
+                return;
+            }
+
+            // Recopilar carreras y materias asignadas
+            const rows = document.querySelectorAll('#docente-carreras-container > div');
+            const carrerasAsignadas = [];
+
+            rows.forEach(row => {
+                const carreraId = row.querySelector('.doc-carrera-select').value;
+                const checkedBox = row.querySelectorAll('.doc-materia-check:checked');
+                const materias = Array.from(checkedBox).map(cb => cb.value);
+
+                if (materias.length > 0) {
+                    // Verificar si ya existe esa carrera agregada
+                    const existing = carrerasAsignadas.find(c => c.carreraId === carreraId);
+                    if (existing) {
+                        existing.materias = Array.from(new Set([...existing.materias, ...materias]));
+                    } else {
+                        carrerasAsignadas.push({ carreraId, materias });
+                    }
+                }
+            });
+
+            if (carrerasAsignadas.length === 0) {
+                showToast('Debe seleccionar al menos una materia para enseñar', 'error');
+                return;
+            }
+
+            const newDocente = {
+                cedula: cedula,
+                nombre: document.getElementById('reg-docente-nombre').value.trim(),
+                telefono: document.getElementById('reg-docente-telefono').value.trim(),
+                password: document.getElementById('reg-docente-password').value,
+                rol: 'docente',
+                carreras: carrerasAsignadas
+            };
+
+            appState.users.push(newDocente);
+            saveDatabase();
+            showToast('Cuenta de Docente registrada con éxito.', 'success');
+            switchAuthTab('login');
+            document.getElementById('login-cedula').value = cedula;
+            document.getElementById('login-password').value = newDocente.password;
+        }
+
+        // LOGIN Y CONTROL DE SESION
+        function handleLogin(e) {
+            e.preventDefault();
+            const cedula = document.getElementById('login-cedula').value.trim();
+            const pass = document.getElementById('login-password').value;
+
+            const user = appState.users.find(u => u.cedula === cedula && u.password === pass);
+
+            if (!user) {
+                showToast('Cédula o contraseña incorrectas', 'error');
+                return;
+            }
+
+            appState.currentUser = user;
+            localStorage.setItem('uni_current_user', JSON.stringify(user));
+            showToast(`¡Bienvenido/a, ${user.nombre}!`, 'success');
+            renderApp();
+        }
+
+        function checkSession() {
+            const savedUser = localStorage.getItem('uni_current_user');
+            if (savedUser) {
+                appState.currentUser = JSON.parse(savedUser);
+                renderApp();
+            } else {
+                showAuthScreen();
+            }
+        }
+
+        function logout() {
+            appState.currentUser = null;
+            localStorage.removeItem('uni_current_user');
+            showAuthScreen();
+            showToast('Sesión cerrada correctamente.', 'info');
+        }
+
+        function showAuthScreen() {
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('app-screen').classList.add('hidden');
+        }
+
+        function renderApp() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('app-screen').classList.remove('hidden');
+
+            const user = appState.currentUser;
+            document.getElementById('user-display-name').textContent = user.nombre;
+            document.getElementById('user-display-role').textContent = user.rol === 'alumno' ? 'Estudiante' : 'Docente / Profesor';
+
+            if (user.rol === 'alumno') {
+                document.getElementById('alumno-dashboard').classList.remove('hidden');
+                document.getElementById('docente-dashboard').classList.add('hidden');
+                setupAlumnoDashboard();
+            } else {
+                document.getElementById('docente-dashboard').classList.remove('hidden');
+                document.getElementById('alumno-dashboard').classList.add('hidden');
+                setupDocenteDashboard();
+            }
+        }
+
+        // ==========================================
+        // LÓGICA DEL PANEL DE ALUMNO
+        // ==========================================
+
+        function setupAlumnoDashboard() {
+            const alumno = appState.currentUser;
+            const carreraObj = appState.carreras.find(c => c.id === alumno.carreraId);
+
+            document.getElementById('alumno-card-nombre').textContent = alumno.nombre;
+            document.getElementById('alumno-card-cedula').textContent = alumno.cedula;
+            document.getElementById('alumno-card-matricula').textContent = alumno.matricula;
+            document.getElementById('alumno-card-telefono').textContent = alumno.telefono;
+            document.getElementById('alumno-card-carrera').textContent = carreraObj ? carreraObj.nombre : 'Sin asignación';
+
+            renderAlumnoSubjects();
+        }
+
+        function renderAlumnoSubjects() {
+            const alumno = appState.currentUser;
+            const filter = document.getElementById('alumno-search-subject').value.toLowerCase();
+            const carreraObj = appState.carreras.find(c => c.id === alumno.carreraId);
+            const tbody = document.getElementById('alumno-grades-table');
+            const emptyState = document.getElementById('alumno-empty-state');
+
+            tbody.innerHTML = '';
+
+            if (!carreraObj || !carreraObj.materias.length) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            const materiasFiltradas = carreraObj.materias.filter(m => m.toLowerCase().includes(filter));
+
+            if (materiasFiltradas.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            materiasFiltradas.forEach(materia => {
+                const key = `${alumno.cedula}_${materia}`;
+                const notaObj = appState.notas[key] || { p1: 0, p2: 0, final: 0, asistencia: 0 };
+                
+                const total = notaObj.p1 + notaObj.p2 + notaObj.final;
+                let estadoBadge = '';
+
+                if (notaObj.asistencia < 70) {
+                    estadoBadge = `<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Reprobado (Asistencia)</span>`;
+                } else if (total >= 60) {
+                    estadoBadge = `<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700">Aprobado</span>`;
+                } else {
+                    estadoBadge = `<span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700">En Proceso / Reprobado</span>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 transition-colors";
+                tr.innerHTML = `
+                    <td class="py-4 px-6 font-semibold text-slate-800">
+                        ${materia}
+                    </td>
+                    <td class="py-4 px-4 text-center font-mono text-slate-600">${notaObj.p1} / 30</td>
+                    <td class="py-4 px-4 text-center font-mono text-slate-600">${notaObj.p2} / 30</td>
+                    <td class="py-4 px-4 text-center font-mono text-slate-600">${notaObj.final} / 40</td>
+                    <td class="py-4 px-4 text-center">
+                        <span class="font-bold text-base font-mono ${total >= 60 ? 'text-emerald-600' : 'text-slate-800'}">${total}</span>
+                        <span class="text-xs text-slate-400">/100</span>
+                    </td>
+                    <td class="py-4 px-4 text-center">
+                        <div class="inline-flex items-center gap-1 font-semibold ${notaObj.asistencia >= 70 ? 'text-slate-700' : 'text-red-600'}">
+                            <span>${notaObj.asistencia}%</span>
+                        </div>
+                    </td>
+                    <td class="py-4 px-6 text-center">${estadoBadge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ==========================================
+        // LÓGICA DEL PANEL DE DOCENTE
+        // ==========================================
+
+        function setupDocenteDashboard() {
+            const docente = appState.currentUser;
+            document.getElementById('docente-card-nombre').textContent = docente.nombre;
+            document.getElementById('docente-card-cedula').textContent = docente.cedula;
+            document.getElementById('docente-card-telefono').textContent = docente.telefono;
+
+            const selectCarrera = document.getElementById('docente-select-carrera');
+            selectCarrera.innerHTML = '';
+
+            if (!docente.carreras || docente.carreras.length === 0) {
+                showToast('No tiene carreras asignadas.', 'error');
+                return;
+            }
+
+            docente.carreras.forEach(c => {
+                const carreraObj = appState.carreras.find(car => car.id === c.carreraId);
+                if (carreraObj) {
+                    const opt = document.createElement('option');
+                    opt.value = c.carreraId;
+                    opt.textContent = carreraObj.nombre;
+                    selectCarrera.appendChild(opt);
+                }
+            });
+
+            onDocenteCarreraChange();
+        }
+
+        function onDocenteCarreraChange() {
+            const docente = appState.currentUser;
+            const carreraId = document.getElementById('docente-select-carrera').value;
+            const selectMateria = document.getElementById('docente-select-materia');
+            selectMateria.innerHTML = '';
+
+            const carreraDocente = docente.carreras.find(c => c.carreraId === carreraId);
+
+            if (carreraDocente && carreraDocente.materias.length > 0) {
+                carreraDocente.materias.forEach(mat => {
+                    const opt = document.createElement('option');
+                    opt.value = mat;
+                    opt.textContent = mat;
+                    selectMateria.appendChild(opt);
+                });
+            }
+
+            renderDocenteStudents();
+        }
+
+        function renderDocenteStudents() {
+            const carreraId = document.getElementById('docente-select-carrera').value;
+            const materia = document.getElementById('docente-select-materia').value;
+            const tbody = document.getElementById('docente-students-table');
+            const emptyState = document.getElementById('docente-empty-state');
+
+            tbody.innerHTML = '';
+
+            // Obtener los alumnos matriculados en esta carrera
+            const alumnosInscritos = appState.users.filter(u => u.rol === 'alumno' && u.carreraId === carreraId);
+
+            if (alumnosInscritos.length === 0 || !materia) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            alumnosInscritos.forEach(alumno => {
+                const key = `${alumno.cedula}_${materia}`;
+                const notaObj = appState.notas[key] || { p1: 0, p2: 0, final: 0, asistencia: 100 };
+
+                const total = (notaObj.p1 || 0) + (notaObj.p2 || 0) + (notaObj.final || 0);
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.dataset.alumnoCedula = alumno.cedula;
+
+                tr.innerHTML = `
+                    <td class="py-3 px-6 font-semibold text-slate-800">
+                        <div>${alumno.nombre}</div>
+                        <div class="text-[11px] font-normal text-slate-400">Tel: ${alumno.telefono}</div>
+                    </td>
+                    <td class="py-3 px-4 text-xs font-mono text-slate-600">
+                        <div>Mat: ${alumno.matricula}</div>
+                        <div class="text-[10px] text-slate-400">CI: ${alumno.cedula}</div>
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        <input type="number" min="0" max="30" value="${notaObj.p1}" onchange="recalculateRow(this)" class="input-p1 w-20 text-center px-2 py-1 bg-slate-50 border border-slate-300 rounded font-mono text-xs focus:ring-2 focus:ring-brand-600">
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        <input type="number" min="0" max="30" value="${notaObj.p2}" onchange="recalculateRow(this)" class="input-p2 w-20 text-center px-2 py-1 bg-slate-50 border border-slate-300 rounded font-mono text-xs focus:ring-2 focus:ring-brand-600">
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        <input type="number" min="0" max="40" value="${notaObj.final}" onchange="recalculateRow(this)" class="input-final w-20 text-center px-2 py-1 bg-slate-50 border border-slate-300 rounded font-mono text-xs focus:ring-2 focus:ring-brand-600">
+                    </td>
+                    <td class="py-3 px-3 text-center font-bold font-mono text-slate-800 total-cell">
+                        ${total}
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        <input type="number" min="0" max="100" value="${notaObj.asistencia}" class="input-asistencia w-20 text-center px-2 py-1 bg-slate-50 border border-slate-300 rounded font-mono text-xs focus:ring-2 focus:ring-brand-600">
+                    </td>
+                    <td class="py-3 px-4 text-center status-cell">
+                        ${getStatusBadge(total, notaObj.asistencia)}
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        function recalculateRow(inputElement) {
+            const tr = inputElement.closest('tr');
+            const p1 = Math.min(30, Math.max(0, parseInt(tr.querySelector('.input-p1').value) || 0));
+            const p2 = Math.min(30, Math.max(0, parseInt(tr.querySelector('.input-p2').value) || 0));
+            const final = Math.min(40, Math.max(0, parseInt(tr.querySelector('.input-final').value) || 0));
+            const asistencia = Math.min(100, Math.max(0, parseInt(tr.querySelector('.input-asistencia').value) || 0));
+
+            const total = p1 + p2 + final;
+
+            tr.querySelector('.total-cell').textContent = total;
+            tr.querySelector('.status-cell').innerHTML = getStatusBadge(total, asistencia);
+        }
+
+        function getStatusBadge(total, asistencia) {
+            if (asistencia < 70) {
+                return `<span class="px-2 py-0.5 text-[10px] font-semibold rounded bg-red-100 text-red-700">Rep. Asist.</span>`;
+            } else if (total >= 60) {
+                return `<span class="px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-100 text-emerald-700">Aprobado</span>`;
+            } else {
+                return `<span class="px-2 py-0.5 text-[10px] font-semibold rounded bg-amber-100 text-amber-700">Reprobado</span>`;
+            }
+        }
+
+        function saveDocenteChanges() {
+            const materia = document.getElementById('docente-select-materia').value;
+            if (!materia) return;
+
+            const rows = document.querySelectorAll('#docente-students-table tr');
+            
+            rows.forEach(tr => {
+                const cedula = tr.dataset.alumnoCedula;
+                if (!cedula) return;
+
+                const p1 = Math.min(30, Math.max(0, parseInt(tr.querySelector('.input-p1').value) || 0));
+                const p2 = Math.min(30, Math.max(0, parseInt(tr.querySelector('.input-p2').value) || 0));
+                const final = Math.min(40, Math.max(0, parseInt(tr.querySelector('.input-final').value) || 0));
+                const asistencia = Math.min(100, Math.max(0, parseInt(tr.querySelector('.input-asistencia').value) || 0));
+
+                const key = `${cedula}_${materia}`;
+                appState.notas[key] = { p1, p2, final, asistencia };
+            });
+
+            saveDatabase();
+            showToast('Calificaciones y asistencias guardadas correctamente', 'success');
+        }
+    </script>
+</body>
+</html>
